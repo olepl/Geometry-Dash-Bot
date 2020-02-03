@@ -1,0 +1,5 @@
+﻿  macro.cpp
+D:\Dev\GDBot\GDBot\src\intern\macro.cpp(55,46): warning C4312: "Typumwandlung": Konvertierung von "DWORD" in größeren Typ "LPCVOID"
+D:\Dev\GDBot\GDBot\src\intern\macro.cpp(66,28): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "unsigned int", Datenverlust möglich
+D:\Dev\GDBot\GDBot\src\intern\macro.cpp(74,47): warning C4312: "Typumwandlung": Konvertierung von "DWORD" in größeren Typ "LPCVOID"
+  GDBot.vcxproj -> D:\Dev\GDBot\bin\x64-Debug\GDBot.exe
