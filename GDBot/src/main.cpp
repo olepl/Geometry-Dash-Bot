@@ -5,80 +5,127 @@
 #include <utils.h>
 #include <macro.h>
 
-#define CLS clearScreen(); \
-std::cout << "[X-Address: " << std::hex << std::uppercase << xAdress << std::nouppercase << std::dec << " ]" << "[Macro: " << macro_name << " ]" << std::endl; \
-std::cout << "[F5] RESTART MACRO; [F6] RUN MACRO; [F7] RECORD MACRO; [F8] OPEN INSPECTOR; [F9] PLACE MARKER; [F10] SAVE/STOP MACRO;\n" << std::endl;
+#define UPDATE_ADRESSES	base_address	= getBaseAddress(_T("GeometryDash.exe")); \
+						pos_address		= getAddress({ 0x3222D0, 0x164, 0x124, 0xEC, 0x108, 0x67C	}); \
+						att_address		= getAddress({ 0x3222D0, 0x164, 0x20C, 0xB4, 0xB4, 0x4A8	}); \
+						freeze_address	= getAddress({ 0x3222D0, 0x164, 0x484, 0xB4, 0x224, 0x660	});
 
-HANDLE hConsole;
-std::string input = "";
-std::string macro_name = "-";
+HANDLE	hConsole;
+INPUT	MButton;
+std::string	input = "";
 
-HWND hwnd;
-DWORD procID;
-HANDLE handle;
+HWND	hwnd;
+DWORD	procID;
+HANDLE	handle;
 
-DWORD baseAdress;
-DWORD xAdress;
+DWORD	base_address;
+DWORD	pos_address;
+DWORD	att_address;
+DWORD	freeze_address;
+float	pos_buffer = 0;
+int		att_buffer = 0;
+int		freeze_buffer = 0;
+Macro	macro;
+Header	header(&macro, &att_address);
 
-int main(int argc, char* argv[]) {
-	hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	SetConsoleTitle(_T("Geometry Dash Bot by BooleanGD [v1.1.0]"));
+void Init()
+{
+	hConsole	= GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTitle(_T("Geometry Dash Bot by BooleanGD [v1.2.0]"));
 
-	hwnd = FindWindow(NULL, _T("Geometry Dash"));
+	MButton.type			= INPUT_MOUSE;
+	MButton.mi.dwFlags		= MOUSEEVENTF_LEFTUP;
+	MButton.mi.dx			= 0;
+	MButton.mi.time			= 0;
+	MButton.mi.dy			= 0;
+	MButton.mi.mouseData	= 0;
+	MButton.mi.dwExtraInfo	= NULL;
+
+	hwnd		= FindWindow(NULL, _T("Geometry Dash"));
 	GetWindowThreadProcessId(hwnd, &procID);
-	handle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
+	handle		= OpenProcess(PROCESS_ALL_ACCESS, FALSE, procID);
 
-	baseAdress = getBaseAdress(_T("GeometryDash.exe"));
-	xAdress = getAdress({ 0x3222D0, 0x164, 0x124, 0xEC, 0x108, 0x67C });
-	Macro macro;
+	UPDATE_ADRESSES
 
-	main_menu:
-	CLS;
-	
-	while (true) {
-		
-		if			(GetKeyState(VK_F6) & 0x8000) {
-			while (macro.isEmpty()) {
-				std::cout << "What macro do you want to run?" << std::endl;
-				
-				getline(std::cin, input);	
+	macro.setName("-");
+}
 
-				std::ifstream file(input);
-				if (file.is_open()) {
-					macro.load(file);
-					macro_name = input;
+void Menu()
+{
+	cls();
 
-					file.close();
-				}
-				else {
-					std::cout << "\n'" << input << "' does not exist";
-					std::cin.get();
-					CLS;
-				}
+	header.setStatus("MENU");
+	header.setHotkeys(HOTKEYLIST_SLOT_RUN | HOTKEYLIST_SLOT_RECORD | HOTKEYLIST_SLOT_INSPECT);
+
+	header.update();
+
+	while (true)
+	{
+		if (KEYPRESS_RUN)
+		{
+			while (macro.isEmpty())
+			{
+				std::cout << "Type in which macro to run:\n> ";
+
+				getline(std::cin, input);
+				macro.setName(input);
+
+				if (macro.load())
+				std::cout << "Sorry, this macro does not exist yet." << std::endl;
 			}
-			std::cout << "[PLAYING]" << std::endl;
+
+			header.setStatus("RUNNING");
+			header.setHotkeys(HOTKEYLIST_SLOT_RESTART | HOTKEYLIST_SLOT_SAVE);
+			UPDATE_ADRESSES
+
+			header.update();
+
 			macro.run();
-			goto main_menu;
 
-		} else if	(GetKeyState(VK_F7) & 0x8000) {
-			std::cout << "[RECORDING]" << std::endl;
+			return;
+		}
+		else if (KEYPRESS_RECORD)
+		{
+			header.setStatus("RECORDING");
+			header.setHotkeys(HOTKEYLIST_SLOT_RESTART | HOTKEYLIST_SLOT_SAVE);
+			UPDATE_ADRESSES
+
+			header.update();
+
 			macro.record();
-			std::cout << "As what do you want to save this?" << std::endl;
+
+			std::cout << "Type in the name to save the macro\n> ";
+
 			getline(std::cin, input);
+			macro.setName(input);
+			macro.save();
+			
+			return;
+		}
+		else if (KEYPRESS_INSPECT)
+		{ 
+			header.setStatus("INSPECTING");
+			header.setHotkeys(HOTKEYLIST_SLOT_SAVE);
+			UPDATE_ADRESSES
 
-			std::ofstream file(input);
-			if (file.is_open()) {
-				macro.save(file);
-				macro_name = input;
+			header.update();
 
-				file.close();
-			}
-			goto main_menu;
+			inspect();
 
-		} else if	(GetKeyState(VK_F8) & 0x8000) {
-			goto main_menu;
-
+			return;
 		}
 	}
+}
+
+int main(int argc, char* argv[])
+{
+	Init();
+
+	while (1)
+	{
+		Menu();
+	}
+	
+
 	return 0;
 }

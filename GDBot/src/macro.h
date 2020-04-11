@@ -3,21 +3,27 @@
 #include <vector>
 #include <fstream>
 
-//requires HWND hwnd, HANDLE handle, DWORD xAdress
-class Macro {
+class Macro
+{
 public:
 	Macro();
 	Macro(std::vector<float> data);
 	~Macro();
 
-	void load(std::ifstream &file);
-	void save(std::ofstream &file);
+	int load();
+	int save();
 
 	void run();
 	void record();
 
 	bool isEmpty();
 
+	void setName(std::string name);
+	std::string getName();
+
 private:
-	std::vector<float> data;
+	std::vector<float>	data;
+	std::string			name;
 };
+
+void inspect();

@@ -2,8 +2,54 @@
 
 extern HANDLE hConsole;
 
-void clearScreen() {
-	COORD	origin = { 0, 0 };
+Header::Header(Macro* macro, DWORD* address) : macro(macro), address(address) {
+	status = "-";
+}
+Header::~Header() {}
+
+void Header::update() {
+	CONSOLE_SCREEN_BUFFER_INFO buffer;
+	GetConsoleScreenBufferInfo(hConsole, &buffer);
+	COORD origin = { 0, 0 };
+
+	// clearing the first two lines
+	DWORD written;
+	DWORD cells = buffer.dwSize.X * (DWORD)2;
+	FillConsoleOutputCharacter(hConsole, ' ', cells, origin, &written);
+	FillConsoleOutputAttribute(hConsole, buffer.wAttributes, cells, origin, &written);
+
+	// writing new stuff
+	SetConsoleCursorPosition(hConsole, origin);
+
+	std::cout << "(Address: ";
+	std::cout << std::hex << *address << std::dec;
+	std::cout << " ) [" << status << "] => " << macro->getName() << ";" << std::endl;
+
+	if (hotkeys & 1 << 0) std::cout << "RESTART F5; ";
+	if (hotkeys & 1 << 1) std::cout << "RUN F6; ";
+	if (hotkeys & 1 << 2) std::cout << "RECORD F7; ";
+	if (hotkeys & 1 << 3) std::cout << "INSPECT F8; ";
+	if (hotkeys & 1 << 5) std::cout << "SAVE F10; ";
+
+	SetConsoleCursorPosition(hConsole, buffer.dwCursorPosition);
+}
+
+std::string Header::getStatus() {
+	return status;
+}
+void Header::setStatus(std::string status)
+{
+	this->status = status;
+	update();
+}
+
+void Header::setHotkeys(byte hotkeys) {
+	this->hotkeys = hotkeys;
+}
+
+void cls()
+{
+	COORD origin = { 0, 0 };
 	DWORD written;
 
 	CONSOLE_SCREEN_BUFFER_INFO	buffer;
@@ -14,52 +60,5 @@ void clearScreen() {
 	FillConsoleOutputCharacter(hConsole, ' ', cells, origin, &written);
 	FillConsoleOutputAttribute(hConsole, buffer.wAttributes, cells, origin, &written);
 	SetConsoleCursorPosition(hConsole, origin);
-}
-
-void writeHeader(std::vector<std::string> str, short n, short off) {
-	DWORD written_buffer;
-	COORD origin = { 0, 0 };
-	origin.Y += off;
-	
-	n += off;
-
-	CONSOLE_SCREEN_BUFFER_INFO	buffer;
-	GetConsoleScreenBufferInfo(hConsole, &buffer);
-
-	if (str.size() != n) {
-		//scroll
-		SMALL_RECT scroll_rect;
-		scroll_rect.Top = n;
-		scroll_rect.Bottom = buffer.dwSize.Y - 1;
-		scroll_rect.Left = 0;
-		scroll_rect.Right = buffer.dwSize.X - 1;
-
-		SMALL_RECT clip_rect = scroll_rect;
-		if (str.size() < n) {
-			clip_rect.Top = str.size();
-		}
-
-		COORD dest;
-		dest.X = 0;
-		dest.Y = str.size() + off;
-
-		CHAR_INFO c;
-		c.Char.UnicodeChar = (char)' ';
-		c.Attributes = 0;
-
-		ScrollConsoleScreenBuffer(hConsole, &scroll_rect, &clip_rect, dest, &c);
-	}
-
-	DWORD cells = buffer.dwSize.X * str.size();
-	FillConsoleOutputCharacter(hConsole, ' ', cells, origin, &written_buffer);
-
-	SetConsoleCursorPosition(hConsole, origin);
-	for (int i = 0; i < str.size(); i++) {
-		std::cout << str[i] << std::endl;
-	}
-
-	COORD cursor_pos = buffer.dwCursorPosition;
-	cursor_pos.Y += str.size() - n + off;
-
-	SetConsoleCursorPosition(hConsole, cursor_pos);
+	std::cout << "\n\n";
 }
